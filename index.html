@@ -47,8 +47,6 @@
 .lh-cloud {
   /* Margini di pagina più stretti per dare spazio al menu */
   padding: 14mm 16mm 14mm 16mm;
-  /* Footer assoluto: lasciamo respiro in fondo */
-  padding-bottom: 16mm;
 }
 
 /* Filigrana (sottilissima) */
@@ -692,11 +690,11 @@
    FOOTER
    ============================================================ */
 .lh-e-footer {
-  position: absolute;
-  left: 18mm;
-  right: 18mm;
-  bottom: 10mm;
+  position: static;
   z-index: 1;
+  margin-top: calc(10mm * var(--dens));
+  padding-top: 4mm;
+  border-top: 1px solid var(--lh-hairline);
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 12px;
@@ -706,8 +704,8 @@
   text-transform: uppercase;
   color: var(--lh-muted);
   font-weight: 500;
-  padding-top: 4mm;
-  border-top: 1px solid var(--lh-hairline);
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 .lh-e-footer-l b { color: var(--lh-ink); font-weight: 600; }
 .lh-e-footer-c { text-align: center; }
@@ -839,6 +837,7 @@
     box-shadow: none !important;
     transform: none !important;
     margin: 0 !important;
+    background-image: none !important;  /* no page-break gradient on print */
   }
   .no-print { display: none !important; }
   .lh-edit:hover, .lh-edit:focus {
@@ -848,6 +847,75 @@
   .lh-voce-row {
     border-bottom: none !important;
   }
+  /* Evita di spezzare elementi importanti tra pagine */
+  .lh-sez, .lh-extra, .lh-menu-price, .lh-totali, .lh-e-pay, .lh-e-footer,
+  .lh-e-section-head, .lh-e-recipient-grid {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+
+/* Separatore visibile delle pagine A4 (solo a schermo) */
+.lh-page {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(297mm - 1px),
+    rgba(123, 137, 201, 0.35) calc(297mm - 1px),
+    rgba(123, 137, 201, 0.35) 297mm
+  );
+}
+
+/* ============================================================
+   OMAGGIO (extra sbarrato perché offerto)
+   ============================================================ */
+.lh-extra-offerto .lh-extra-label,
+.lh-extra-offerto .lh-extra-desc,
+.lh-extra-offerto .lh-extra-ppg,
+.lh-extra-offerto .lh-extra-amount {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  color: var(--lh-mute2);
+}
+.lh-extra-offerto .lh-extra-label {
+  color: var(--lh-muted);
+}
+.lh-omaggio-tag {
+  display: inline-block;
+  margin-left: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--accent);
+  padding: 1px 6px;
+  border-radius: 3px;
+  vertical-align: 1px;
+  text-decoration: none !important;
+}
+.lh-omaggio-toggle {
+  display: inline-block;
+  margin-top: 2px;
+  background: transparent;
+  border: 1px dashed var(--lh-mute2);
+  color: var(--lh-muted);
+  font-family: inherit;
+  font-size: 7pt;
+  padding: 1px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+.lh-omaggio-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.lh-omaggio-toggle.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 /* ============================================================
@@ -1049,21 +1117,9 @@ button:disabled {
 }
 
 
-/* "Tavolo" attorno al foglio A4 */
-html, body {
-  margin: 0;
-  padding: 0;
-  background: #ECEAE4;
-  min-height: 100vh;
-}
-.lh-stage {
-  padding: 80px 0 80px;
-  display: flex;
-  justify-content: center;
-}
-.lh-page {
-  box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 18px 50px rgba(20,20,40,.10);
-}
+html, body { margin: 0; padding: 0; background: #ECEAE4; min-height: 100vh; }
+.lh-stage { padding: 80px 0 80px; display: flex; justify-content: center; }
+.lh-page { box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 18px 50px rgba(20,20,40,.10); }
 @media print {
   body { background: #fff; }
   .lh-stage { padding: 0; display: block; }
@@ -1636,10 +1692,10 @@ const defaultData = {
   // Prezzo del menu (cumulato per tutte le sezioni sopra), €/persona
   menuPricePerGuest: 75,
 
-  // Extras: forfait o per-pax, ognuno con suo prezzo
+  // Extras: forfait o per-pax, ognuno con suo prezzo. offerto=true → sbarrato / escluso dal totale
   extras: [
-    { id: "area", label: "Area riservata", q: "Spazio dedicato esclusivo", price: 500, kind: "fixed" },
-    { id: "sporz", label: "Servizio sporzionamento", q: "Personale dedicato al servizio ai tavoli", price: 3, kind: "perGuest" },
+    { id: "area", label: "Area riservata", q: "Spazio dedicato esclusivo", price: 500, kind: "fixed", offerto: false },
+    { id: "sporz", label: "Servizio sporzionamento", q: "Personale dedicato al servizio ai tavoli", price: 3, kind: "perGuest", offerto: false },
   ],
 
   // Prezzo riservato finale (0 = nessuno sconto, mostra solo listino)
@@ -1713,6 +1769,7 @@ function usePersistedData() {
       q: "",
       price: 0,
       kind: "fixed",
+      offerto: false,
     }]
   }));
   const removeExtra = (idx) => setData((d) => ({
@@ -2038,8 +2095,9 @@ function ExtraRow({ ex, idx, ospiti, onUpdate, onRemove, L }) {
   const n = parseInt(ospiti, 10) || 0;
   const price = parseFloatSafe(ex.price);
   const total = ex.kind === "perGuest" ? price * n : price;
+  const offerto = !!ex.offerto;
   return (
-    <div className="lh-extra">
+    <div className={"lh-extra" + (offerto ? " lh-extra-offerto" : "")}>
       <button className="lh-extra-del no-print" onClick={() => onRemove(idx)} title="Rimuovi extra">×</button>
       <div className="lh-extra-main">
         <div className="lh-extra-head">
@@ -2049,6 +2107,7 @@ function ExtraRow({ ex, idx, ospiti, onUpdate, onRemove, L }) {
             onChange={(v) => onUpdate(idx, "label", v)}
             placeholder="Nome extra"
           />
+          {offerto && <span className="lh-omaggio-tag">Omaggio</span>}
         </div>
         <div className="lh-extra-desc">
           <Editable
@@ -2058,6 +2117,14 @@ function ExtraRow({ ex, idx, ospiti, onUpdate, onRemove, L }) {
             multiline
           />
         </div>
+        <button
+          type="button"
+          className={"lh-omaggio-toggle no-print" + (offerto ? " on" : "")}
+          onClick={() => onUpdate(idx, "offerto", !offerto)}
+          title={offerto ? "Annulla omaggio" : "Segna come omaggio (escluso dal totale)"}
+        >
+          {offerto ? "✓ Omaggio" : "Segna come omaggio"}
+        </button>
       </div>
       <div className="lh-extra-price">
         <div className="lh-extra-ppg">
@@ -2121,7 +2188,10 @@ function NimbusLetterhead({ tweaks }) {
   const menuPpg = parseFloatSafe(data.menuPricePerGuest);
   const totaleMenu = menuPpg * n;
   const totaleExtras = (data.extras || []).reduce(
-    (acc, ex) => acc + (ex.kind === "perGuest" ? parseFloatSafe(ex.price) * n : parseFloatSafe(ex.price)),
+    (acc, ex) => {
+      if (ex.offerto) return acc;  // gli omaggi non contano
+      return acc + (ex.kind === "perGuest" ? parseFloatSafe(ex.price) * n : parseFloatSafe(ex.price));
+    },
     0
   );
   const totaleListino = totaleMenu + totaleExtras;
