@@ -4,11 +4,9 @@
 <meta charset="UTF-8" />
 <title>Nimbus — Carta intestata</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&display=swap" rel="stylesheet">
-
 <style>
 /* ============================================================
    NIMBUS — CARTA INTESTATA (variante unica)
@@ -855,30 +853,36 @@
   }
 }
 
-/* Separatore visibile delle pagine A4 (solo a schermo) */
-.lh-page {
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent calc(297mm - 1px),
-    rgba(123, 137, 201, 0.35) calc(297mm - 1px),
-    rgba(123, 137, 201, 0.35) 297mm
-  );
-}
+/* Separatore visibile delle pagine A4 (solo a schermo) — disabilitato
+   per evitare confusione. Il browser pagina comunque correttamente in stampa. */
 
 /* ============================================================
    OMAGGIO (extra sbarrato perché offerto)
    ============================================================ */
 .lh-extra-offerto .lh-extra-label,
-.lh-extra-offerto .lh-extra-desc,
-.lh-extra-offerto .lh-extra-ppg,
-.lh-extra-offerto .lh-extra-amount {
+.lh-extra-offerto .lh-extra-desc {
   text-decoration: line-through;
   text-decoration-thickness: 1px;
   color: var(--lh-mute2);
 }
 .lh-extra-offerto .lh-extra-label {
   color: var(--lh-muted);
+}
+.lh-extra-price-num {
+  display: inline-block;
+  white-space: nowrap;
+}
+.lh-extra-offerto .lh-extra-price-num,
+.lh-extra-offerto .lh-extra-amount {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  color: var(--lh-mute2);
+}
+.lh-extra-offerto .lh-extra-kind,
+.lh-extra-offerto .lh-extra-formula,
+.lh-extra-offerto .lh-omaggio-tag,
+.lh-extra-offerto .lh-omaggio-toggle {
+  text-decoration: none !important;
 }
 .lh-omaggio-tag {
   display: inline-block;
@@ -1116,7 +1120,6 @@ button:disabled {
   text-align: center;
 }
 
-
 html, body { margin: 0; padding: 0; background: #ECEAE4; min-height: 100vh; }
 .lh-stage { padding: 80px 0 80px; display: flex; justify-content: center; }
 .lh-page { box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 18px 50px rgba(20,20,40,.10); }
@@ -1126,42 +1129,21 @@ html, body { margin: 0; padding: 0; background: #ECEAE4; min-height: 100vh; }
   .lh-page { box-shadow: none; }
 }
 </style>
-
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
-
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-  import {
-    getFirestore, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc,
-    onSnapshot, query, orderBy, serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyBI-HVOmJsMA1ftEAhUpyjk9ciln0-_OTo",
-    authDomain: "eventi-nimbus.firebaseapp.com",
-    projectId: "eventi-nimbus",
-    storageBucket: "eventi-nimbus.firebasestorage.app",
-    messagingSenderId: "281137746094",
-    appId: "1:281137746094:web:baa68a2103d95699ab1d3f",
-    measurementId: "G-C9JHD3GQSM"
-  };
-
+  import { getFirestore, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+  const firebaseConfig = { apiKey: "AIzaSyBI-HVOmJsMA1ftEAhUpyjk9ciln0-_OTo", authDomain: "eventi-nimbus.firebaseapp.com", projectId: "eventi-nimbus", storageBucket: "eventi-nimbus.firebasestorage.app", messagingSenderId: "281137746094", appId: "1:281137746094:web:baa68a2103d95699ab1d3f", measurementId: "G-C9JHD3GQSM" };
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  window.__fb = {
-    db,
-    collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc,
-    onSnapshot, query, orderBy, serverTimestamp,
-  };
+  window.__fb = { db, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp };
   window.dispatchEvent(new Event('fb-ready'));
 </script>
 </head>
 <body>
-
 <div id="root"></div>
-
 <script type="text/babel">
 
 // tweaks-panel.jsx
@@ -1590,7 +1572,6 @@ Object.assign(window, {
 });
 
 </script>
-
 <script type="text/babel">
 // letterhead.jsx
 // Carta intestata Nimbus — editabile inline con persistenza localStorage.
@@ -2128,25 +2109,26 @@ function ExtraRow({ ex, idx, ospiti, onUpdate, onRemove, L }) {
       </div>
       <div className="lh-extra-price">
         <div className="lh-extra-ppg">
-          <Editable
-            className="lh-edit-num"
-            value={price}
-            onChange={(v) => onUpdate(idx, "price", typeof v === "number" ? v : parseFloatSafe(v))}
-            numeric
-          />
-          <span className="lh-extra-unit">
-            {" "}€{" "}
-            <button
-              type="button"
-              className="lh-extra-kind no-print"
-              onClick={() => onUpdate(idx, "kind", ex.kind === "perGuest" ? "fixed" : "perGuest")}
-              title="Cambia tipo (forfait / a persona)"
-            >
-              {ex.kind === "perGuest" ? L.perGuest : L.fixed}
-            </button>
-            <span className="lh-extra-kind-print only-print">
-              {ex.kind === "perGuest" ? " " + L.perGuest : ""}
-            </span>
+          <span className="lh-extra-price-num">
+            <Editable
+              className="lh-edit-num"
+              value={price}
+              onChange={(v) => onUpdate(idx, "price", typeof v === "number" ? v : parseFloatSafe(v))}
+              numeric
+            />
+            <span className="lh-extra-currency"> €</span>
+          </span>
+          {" "}
+          <button
+            type="button"
+            className="lh-extra-kind no-print"
+            onClick={() => onUpdate(idx, "kind", ex.kind === "perGuest" ? "fixed" : "perGuest")}
+            title="Cambia tipo (forfait / a persona)"
+          >
+            {ex.kind === "perGuest" ? L.perGuest : L.fixed}
+          </button>
+          <span className="lh-extra-kind-print only-print">
+            {ex.kind === "perGuest" ? " " + L.perGuest : ""}
           </span>
         </div>
         <div className="lh-extra-subtotal">
@@ -2458,7 +2440,6 @@ function NimbusLetterhead({ tweaks }) {
 Object.assign(window, { NimbusLetterhead, defaultData, STRINGS });
 
 </script>
-
 <script type="text/babel">
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
     "accent": "#7B89C9",
@@ -2546,6 +2527,5 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 
   ReactDOM.createRoot(document.getElementById('root')).render(<NimbusApp />);
 </script>
-
 </body>
 </html>
