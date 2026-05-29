@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <title>Nimbus — Carta intestata</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&display=swap" rel="stylesheet">
@@ -1118,6 +1118,185 @@ button:disabled {
   font-size: 11px;
   color: var(--lh-muted);
   text-align: center;
+}
+
+/* ============================================================
+   MOBILE — layout fluido per compilazione da telefono
+   Si attiva sotto 820px. La versione stampa/PDF resta A4 (le
+   regole @media print non sono toccate da questo blocco).
+   ============================================================ */
+@media screen and (max-width: 820px) {
+  html, body {
+    background: var(--lh-paper);
+  }
+
+  /* Niente "tavolo" attorno: il foglio riempie lo schermo */
+  .lh-stage {
+    padding: 12px 0 96px;   /* spazio in fondo per la toolbar fissa */
+    display: block;
+  }
+
+  /* Il foglio diventa fluido a tutta larghezza */
+  .lh-page {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+    font-size: 11pt;          /* leggermente più grande per il tocco */
+    background-image: none !important;
+  }
+  .lh-cloud {
+    padding: 18px 16px 24px;
+  }
+
+  /* Header: logo sopra, dati sotto */
+  .lh-e-header {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding-bottom: 10px;
+  }
+  .lh-e-logo img { height: 13mm; }
+  .lh-e-header-meta {
+    grid-template-columns: repeat(3, auto);
+    justify-content: start;
+    gap: 18px;
+  }
+  .lh-field-k { font-size: 8pt; }
+  .lh-field-v { font-size: 10.5pt; }
+
+  /* Destinatario + oggetto impilati */
+  .lh-e-recipient-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .lh-e-subject-text { font-size: 17pt; max-width: none; }
+  .lh-e-spettile { font-size: 8.5pt; }
+  .lh-e-name { font-size: 13pt; }
+  .lh-e-addr { font-size: 10pt; }
+  .lh-e-body p { font-size: 10.5pt; max-width: none; }
+
+  /* Section heads e intro un filo più grandi */
+  .lh-e-section-title { font-size: 11pt; }
+  .lh-e-section-num { font-size: 16pt; }
+  .lh-e-section-intro { font-size: 9.5pt; }
+
+  /* Sezioni menu */
+  .lh-sez-label { font-size: 8.5pt; }
+  .lh-sez-desc { font-size: 10.5pt; }
+  /* spazio per il pulsante elimina che su desktop è a sinistra (-7mm) */
+  .lh-sez, .lh-extra { padding-left: 0; }
+  .lh-sez-del, .lh-extra-del {
+    left: auto;
+    right: 0;
+    top: 0;
+    transform: none;
+    opacity: 1;            /* sempre visibile su mobile (no hover) */
+    width: 24px; height: 24px;
+  }
+
+  /* Prezzo menu cumulato: impilato */
+  .lh-menu-price {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 14px 16px;
+  }
+  .lh-menu-price-r { align-items: flex-start; text-align: left; }
+  .lh-menu-price-ppg { font-size: 16pt; }
+
+  /* Extra: prezzo va sotto la descrizione */
+  .lh-extra {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding-right: 30px;   /* spazio per il cestino in alto a dx */
+  }
+  .lh-extra-label { font-size: 10.5pt; }
+  .lh-extra-desc { font-size: 9.5pt; }
+  .lh-extra-price { text-align: left; }
+  .lh-extra-ppg { font-size: 13pt; }
+  .lh-omaggio-toggle { font-size: 8.5pt; padding: 4px 10px; }
+
+  /* Totali a tutta larghezza */
+  .lh-totali {
+    width: 100%;
+    margin-left: 0;
+    padding: 16px;
+  }
+  .lh-tot-listino, .lh-tot-sconto { font-size: 10pt; }
+  .lh-tot-final-row .lh-tot-k { font-size: 12pt; }
+  .lh-tot-final-row .lh-tot-v { font-size: 24pt; }
+  .lh-tot-perpax { font-size: 9pt; }
+
+  /* Pagamento: etichetta sopra, valore sotto */
+  .lh-e-pay-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+    padding: 8px 0;
+  }
+  .lh-e-pay-k { font-size: 8.5pt; }
+  .lh-e-pay-v { font-size: 10.5pt; }
+  .lh-e-note { font-size: 9pt; max-width: none; }
+
+  /* Footer compatto */
+  .lh-e-footer {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    text-align: center;
+    font-size: 8pt;
+  }
+  .lh-e-footer-c, .lh-e-footer-r { text-align: center; }
+
+  /* Editable: tap target più comodi */
+  .lh-edit { min-height: 1.4em; }
+
+  /* ── TOOLBAR fissa in basso, a portata di pollice ── */
+  .lh-actionbar {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: none;
+    width: 100%;
+    border-radius: 14px 14px 0 0;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    gap: 8px;
+    justify-content: center;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.18);
+  }
+  .lh-actionbar .lh-ab-hint { display: none; }   /* via il testo, spazio ai bottoni */
+  .lh-actionbar button {
+    flex: 1;
+    justify-content: center;
+    padding: 12px 8px;
+    font-size: 13px;
+    min-height: 44px;     /* hit target */
+  }
+
+  /* Modale preset a (quasi) tutto schermo */
+  .lh-modal-backdrop { padding: 0; }
+  .lh-modal {
+    width: 100%;
+    max-height: 100vh;
+    height: 100%;
+    border-radius: 0;
+  }
+  .lh-preset-item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .lh-preset-actions { justify-content: flex-start; }
+  .lh-preset-actions button { min-height: 40px; padding: 8px 14px; }
+  .lh-modal-save {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .lh-modal-save input { min-height: 44px; }
+  .lh-modal-save button { min-height: 44px; }
+}
+
+/* Telefoni stretti: meta su 1 colonna scorrevole */
+@media screen and (max-width: 380px) {
+  .lh-e-header-meta { gap: 12px; }
+  .lh-tot-final-row .lh-tot-v { font-size: 21pt; }
 }
 
 html, body { margin: 0; padding: 0; background: #ECEAE4; min-height: 100vh; }
