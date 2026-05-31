@@ -641,8 +641,11 @@
   font-size: 7.5pt;
   line-height: 1.5;
   color: var(--lh-muted);
-  max-width: 56em;
+  max-width: none;
   font-style: italic;
+}
+.lh-e-note + .lh-e-note {
+  margin-top: calc(1.5mm * var(--dens));
 }
 
 /* ============================================================
@@ -1866,17 +1869,18 @@ const defaultData = {
   // Pagamento
   acconto: "30",
   saldoGiorni: "7",
-  iban: "IT60 X054 2811 1010 0000 0123 456",
-  intestatario: "Nimbus S.r.l.",
+  iban: "IT69E0326822300052752959420",
+  intestatario: "Last Second SRL",
   validitaGiorni: "30",
   disdettaGiorni: "14",
+  modificaGiorni: "2",
 };
 
 // Campi che fanno parte del preset
 const PRESET_FIELDS = [
   "sezioniMenu", "menuPricePerGuest", "extras",
   "acconto", "saldoGiorni", "iban", "intestatario",
-  "validitaGiorni", "disdettaGiorni",
+  "validitaGiorni", "disdettaGiorni", "modificaGiorni",
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -2590,11 +2594,14 @@ function NimbusLetterhead({ tweaks }) {
           </div>
         </div>
         <p className="lh-e-note">
-          Preventivo valido{" "}
-          <Editable value={data.validitaGiorni} onChange={(v) => update("validitaGiorni", v)} className="lh-edit-inline" />{" "}
-          giorni dalla data di emissione. La conferma definitiva avverrà al ricevimento dell'acconto. In caso di disdetta meno di{" "}
+          La conferma definitiva avverrà al ricevimento dell'acconto. In caso di disdetta meno di{" "}
           <Editable value={data.disdettaGiorni} onChange={(v) => update("disdettaGiorni", v)} className="lh-edit-inline" />{" "}
           giorni prima dell'evento, l'acconto non sarà rimborsabile.
+        </p>
+        <p className="lh-e-note">
+          Il numero di invitati indicato si intende confermato. Eventuali variazioni potranno essere comunicate fino a{" "}
+          <Editable value={data.modificaGiorni} onChange={(v) => update("modificaGiorni", v)} className="lh-edit-inline" />{" "}
+          giorni prima dell'evento: una riduzione del numero di partecipanti sarà recepita con il conseguente ricalcolo del preventivo, mentre un aumento potrà sempre essere accolto compatibilmente con la capienza della location. Oltre tale termine il numero di invitati non sarà più modificabile e l'importo concordato resterà dovuto per intero.
         </p>
       </section>
 
