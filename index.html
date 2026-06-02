@@ -1854,6 +1854,8 @@ const defaultData = {
 
   // Prezzo del menu (cumulato per tutte le sezioni sopra), €/persona
   menuPricePerGuest: 75,
+  menuLabel: "Prezzo menu",
+  menuSub: "food + beverage",
 
   // Extras: forfait o per-pax, ognuno con suo prezzo. offerto=true → sbarrato / escluso dal totale
   extras: [
@@ -1878,7 +1880,7 @@ const defaultData = {
 
 // Campi che fanno parte del preset
 const PRESET_FIELDS = [
-  "sezioniMenu", "menuPricePerGuest", "extras",
+  "sezioniMenu", "menuPricePerGuest", "menuLabel", "menuSub", "extras",
   "acconto", "saldoGiorni", "iban", "intestatario",
   "validitaGiorni", "disdettaGiorni", "modificaGiorni",
 ];
@@ -2472,8 +2474,12 @@ function NimbusLetterhead({ tweaks }) {
         {/* Prezzo menu cumulato */}
         <div className="lh-menu-price">
           <div className="lh-menu-price-l">
-            <span className="lh-menu-price-k">Prezzo menu</span>
-            <span className="lh-menu-price-sub">food + beverage, tutto incluso</span>
+            <span className="lh-menu-price-k">
+              <Editable value={data.menuLabel} onChange={(v) => update("menuLabel", v)} placeholder="Titolo" />
+            </span>
+            <span className="lh-menu-price-sub">
+              <Editable value={data.menuSub} onChange={(v) => update("menuSub", v)} placeholder="es. food + beverage" />
+            </span>
           </div>
           <div className="lh-menu-price-r">
             <div className="lh-menu-price-ppg">
@@ -2544,11 +2550,6 @@ function NimbusLetterhead({ tweaks }) {
                 /> €
               </span>
             </div>
-            {n > 0 && totaleFinale > 0 && (
-              <div className="lh-tot-perpax">
-                <span>equivalenti a <b>{prezzoEffPersona} € a persona</b> · {n} ospiti</span>
-              </div>
-            )}
             <div className="lh-tot-hint no-print">
               Clicca sul totale per inserire un prezzo riservato (con sconto). Lascia 0 o uguale al listino per disattivare lo sconto.
             </div>
