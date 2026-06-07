@@ -2637,6 +2637,23 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 
   function NimbusApp() {
     const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+    // Stampa robusta: window.print() è bloccato dentro iframe sandboxed
+    // (es. anteprime). In quel caso apriamo la pagina in una scheda nuova
+    // (top-level) dove la stampa funziona. localStorage è condiviso per
+    // origine, quindi la scheda nuova mostra gli stessi dati.
+    const handlePrint = React.useCallback(() => {
+      const inIframe = window.self !== window.top;
+      if (inIframe) {
+        const w = window.open(window.location.href, '_blank');
+        if (!w) {
+          alert("Per generare il PDF apri il documento in una scheda/finestra normale, poi premi di nuovo «Scarica PDF».");
+        }
+        return;
+      }
+      window.print();
+    }, []);
+
     return (
       <React.Fragment>
         {/* Action bar fissa: preset, stampa, reset */}
@@ -2645,7 +2662,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
           <button onClick={() => window.__nimbusOpenPresets && window.__nimbusOpenPresets()}>
             ☰ Preset
           </button>
-          <button className="primary" onClick={() => window.print()}>
+          <button className="primary" onClick={handlePrint}>
             <span style={{fontSize:14}}>↓</span> Scarica PDF
           </button>
           <button onClick={() => window.__nimbusReset && window.__nimbusReset()}>
@@ -2659,7 +2676,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 
         <TweaksPanel>
           <TweakSection label="Stampa" />
-          <TweakButton label="Stampa / Salva PDF" onClick={() => window.print()} />
+          <TweakButton label="Stampa / Salva PDF" onClick={handlePrint} />
 
           <TweakSection label="Colore accento" />
           <TweakColor label="Accento" value={t.accent} onChange={(v) => setTweak('accent', v)} />
