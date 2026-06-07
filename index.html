@@ -2656,12 +2656,17 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
       clone.querySelectorAll('.no-print').forEach((el) => el.remove());
       clone.style.boxShadow = 'none';
       clone.style.margin = '0';
-      clone.style.width = '794px';      /* 210mm @96dpi: forza layout A4, evita il mobile */
+      clone.style.boxSizing = 'border-box';  /* larghezza totale = 794px (padding incluso) */
+      clone.style.width = '794px';      /* 210mm @96dpi */
       clone.style.minHeight = '0';
       clone.style.overflow = 'visible';
-      // NB: NON appendiamo il clone al body. html2pdf lo renderizza nel suo
-      // iframe interno alla larghezza giusta — appenderlo a left:-99999px
-      // mandava in tilt le coordinate di html2canvas e tagliava la colonna destra.
+      // Appendi il clone in pagina ma INVISIBILE (left:0, opacity:0, dietro tutto):
+      // html2canvas ottiene coordinate e larghezza corrette. A left:-99999px le
+      // coordinate si rompevano e la colonna destra veniva tagliata.
+      const holder = document.createElement('div');
+      holder.style.cssText = 'position:absolute;left:0;top:0;opacity:0;z-index:-1;pointer-events:none;background:#fff;width:794px';
+      holder.appendChild(clone);
+      document.body.appendChild(holder);
       // nome file: usa il cliente se presente
       let fname = 'Preventivo Nimbus';
       try {
@@ -2669,27 +2674,29 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
         if (cli && !cli.startsWith('[')) fname = 'Preventivo - ' + cli;
       } catch (e) {}
       try {
-        // 1) Rendi il foglio in un unico canvas (html2pdf gestisce l'iframe interno)
+        // Assicura che i font siano caricati prima di catturare (evita layout
+        // diversi tra una generazione e l'altra).
+        if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
         const canvas = await window.html2pdf()
           .from(clone)
           .set({ html2canvas: {
-            scale: 2, useCORS: true, backgroundColor: '#ffffff',
-            width: 794, windowWidth: 794,
+            scale: 3, useCORS: true, backgroundColor: '#ffffff',
           } })
           .toCanvas().get('canvas');
-        // 2) Istanza jsPDF (1 pagina A4 bianca) dal bundle html2pdf
+        // Pagina a LARGHEZZA PIENA (210mm): i margini sono il padding interno
+        // del foglio, ben proporzionato. Altezza pagina = altezza esatta del
+        // contenuto, così niente spazi laterali e nessun rimpicciolimento.
+        const pageW = 210;
+        const pageH = canvas.height * pageW / canvas.width;
         const pdf = await window.html2pdf()
-          .set({ jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
+          .set({ jsPDF: { unit: 'mm', format: [pageW, pageH], orientation: 'portrait' } })
           .from(document.createElement('div')).toPdf().get('pdf');
-        // 3) UNA SOLA pagina A4: scala il contenuto per farlo entrare
-        const pageW = 210, pageH = 297;
-        let w = pageW, h = canvas.height * w / canvas.width;
-        if (h > pageH) { h = pageH; w = canvas.width * h / canvas.height; }
-        pdf.addImage(canvas.toDataURL('image/jpeg', 0.96), 'JPEG', (pageW - w) / 2, 0, w, h);
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, pageW, pageH);
         pdf.save(fname + '.pdf');
       } catch (e) {
         try { window.print(); } catch (e2) {}
       } finally {
+        holder.remove();
         setPdfBusy(false);
       }
     }, []);
