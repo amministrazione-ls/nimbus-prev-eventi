@@ -2656,10 +2656,11 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
       clone.querySelectorAll('.no-print').forEach((el) => el.remove());
       clone.style.boxShadow = 'none';
       clone.style.margin = '0';
-      clone.style.width = '210mm';
+      clone.style.width = '794px';      /* 210mm @96dpi: forza layout A4, evita il mobile */
       clone.style.minHeight = '0';
+      clone.style.overflow = 'visible';  /* niente clip a destra */
       const holder = document.createElement('div');
-      holder.style.cssText = 'position:fixed;left:-99999px;top:0;background:#fff';
+      holder.style.cssText = 'position:fixed;left:-99999px;top:0;width:794px;background:#fff';
       holder.appendChild(clone);
       document.body.appendChild(holder);
       // nome file: usa il cliente se presente
@@ -2669,12 +2670,18 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
         if (cli && !cli.startsWith('[')) fname = 'Preventivo - ' + cli;
       } catch (e) {}
       try {
-        // 1) Rendi il foglio in un unico canvas
+        const fullH = clone.scrollHeight;
+        // 1) Rendi il foglio in un unico canvas, FORZANDO larghezza A4 (794px)
+        //    così il breakpoint mobile non si attiva e nulla viene tagliato.
         const canvas = await window.html2pdf()
           .from(clone)
-          .set({ html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' } })
+          .set({ html2canvas: {
+            scale: 2, useCORS: true, backgroundColor: '#ffffff',
+            width: 794, windowWidth: 794, height: fullH, windowHeight: fullH,
+            scrollX: 0, scrollY: 0,
+          } })
           .toCanvas().get('canvas');
-        // 2) Ottieni un'istanza jsPDF (1 pagina A4 bianca) dal bundle html2pdf
+        // 2) Istanza jsPDF (1 pagina A4 bianca)
         const pdf = await window.html2pdf()
           .set({ jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
           .from(document.createElement('div')).toPdf().get('pdf');
@@ -2682,7 +2689,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
         const pageW = 210, pageH = 297;
         let w = pageW, h = canvas.height * w / canvas.width;
         if (h > pageH) { h = pageH; w = canvas.width * h / canvas.height; }
-        pdf.addImage(canvas.toDataURL('image/jpeg', 0.96), 'JPEG', (pageW - w) / 2, 0, w, h);
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.96), 'JPEG', (pageW - w) / 2, (pageH - h) / 2, w, h);
         pdf.save(fname + '.pdf');
       } catch (e) {
         try { window.print(); } catch (e2) {}
