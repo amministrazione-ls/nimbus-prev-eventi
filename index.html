@@ -2669,14 +2669,21 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
         if (cli && !cli.startsWith('[')) fname = 'Preventivo - ' + cli;
       } catch (e) {}
       try {
-        await window.html2pdf().set({
-          margin: 0,
-          filename: fname + '.pdf',
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-        }).from(clone).save();
+        // 1) Rendi il foglio in un unico canvas
+        const canvas = await window.html2pdf()
+          .from(clone)
+          .set({ html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' } })
+          .toCanvas().get('canvas');
+        // 2) Ottieni un'istanza jsPDF (1 pagina A4 bianca) dal bundle html2pdf
+        const pdf = await window.html2pdf()
+          .set({ jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
+          .from(document.createElement('div')).toPdf().get('pdf');
+        // 3) UNA SOLA pagina A4: scala il contenuto per farlo entrare, centrato
+        const pageW = 210, pageH = 297;
+        let w = pageW, h = canvas.height * w / canvas.width;
+        if (h > pageH) { h = pageH; w = canvas.width * h / canvas.height; }
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.96), 'JPEG', (pageW - w) / 2, 0, w, h);
+        pdf.save(fname + '.pdf');
       } catch (e) {
         try { window.print(); } catch (e2) {}
       } finally {
