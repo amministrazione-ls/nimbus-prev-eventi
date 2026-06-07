@@ -1314,6 +1314,7 @@ html, body { margin: 0; padding: 0; background: #ECEAE4; min-height: 100vh; }
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
   import { getFirestore, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
@@ -2638,20 +2639,50 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   function NimbusApp() {
     const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
 
-    // Stampa robusta: window.print() è bloccato dentro iframe sandboxed
-    // (es. anteprime). In quel caso apriamo la pagina in una scheda nuova
-    // (top-level) dove la stampa funziona. localStorage è condiviso per
-    // origine, quindi la scheda nuova mostra gli stessi dati.
-    const handlePrint = React.useCallback(() => {
-      const inIframe = window.self !== window.top;
-      if (inIframe) {
-        const w = window.open(window.location.href, '_blank');
-        if (!w) {
-          alert("Per generare il PDF apri il documento in una scheda/finestra normale, poi premi di nuovo «Scarica PDF».");
-        }
+    // "Scarica PDF": genera e SCARICA direttamente un file PDF (niente
+    // finestra di stampa). Usa html2pdf (html2canvas + jsPDF). Cloniamo il
+    // foglio, togliamo i controlli .no-print, e renderizziamo su A4.
+    const [pdfBusy, setPdfBusy] = React.useState(false);
+    const handlePrint = React.useCallback(async () => {
+      const src = document.querySelector('.lh-page');
+      if (!src) return;
+      if (!window.html2pdf) {
+        // Fallback: se la libreria non è caricata, usa la stampa di sistema
+        try { window.print(); } catch (e) {}
         return;
       }
-      window.print();
+      setPdfBusy(true);
+      const clone = src.cloneNode(true);
+      clone.querySelectorAll('.no-print').forEach((el) => el.remove());
+      clone.style.boxShadow = 'none';
+      clone.style.margin = '0';
+      clone.style.width = '210mm';
+      clone.style.minHeight = '0';
+      const holder = document.createElement('div');
+      holder.style.cssText = 'position:fixed;left:-99999px;top:0;background:#fff';
+      holder.appendChild(clone);
+      document.body.appendChild(holder);
+      // nome file: usa il cliente se presente
+      let fname = 'Preventivo Nimbus';
+      try {
+        const cli = (JSON.parse(localStorage.getItem('nimbus-preventivo-v2') || '{}').cliente || '').trim();
+        if (cli && !cli.startsWith('[')) fname = 'Preventivo - ' + cli;
+      } catch (e) {}
+      try {
+        await window.html2pdf().set({
+          margin: 0,
+          filename: fname + '.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+        }).from(clone).save();
+      } catch (e) {
+        try { window.print(); } catch (e2) {}
+      } finally {
+        holder.remove();
+        setPdfBusy(false);
+      }
     }, []);
 
     return (
@@ -2662,8 +2693,8 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
           <button onClick={() => window.__nimbusOpenPresets && window.__nimbusOpenPresets()}>
             ☰ Preset
           </button>
-          <button className="primary" onClick={handlePrint}>
-            <span style={{fontSize:14}}>↓</span> Scarica PDF
+          <button className="primary" onClick={handlePrint} disabled={pdfBusy}>
+            <span style={{fontSize:14}}>↓</span> {pdfBusy ? "Genero PDF…" : "Scarica PDF"}
           </button>
           <button onClick={() => window.__nimbusReset && window.__nimbusReset()}>
             ↺ Ripristina
