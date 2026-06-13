@@ -2674,9 +2674,24 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
         if (cli && !cli.startsWith('[')) fname = 'Preventivo - ' + cli;
       } catch (e) {}
       try {
-        // Assicura che i font siano caricati prima di catturare (evita layout
-        // diversi tra una generazione e l'altra).
-        if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
+        // ── Anti-race coi font ──────────────────────────────────────────
+        // Al primo click i font (Fraunces/Inter) potrebbero non essere ancora
+        // applicati nel clone offscreen → impaginazione sbagliata. Forziamo
+        // il caricamento esplicito delle famiglie usate, attendiamo fonts.ready
+        // e lasciamo passare due frame perché il layout si assesti.
+        if (document.fonts) {
+          try {
+            await Promise.all([
+              document.fonts.load('400 12pt "Fraunces"'),
+              document.fonts.load('500 12pt "Fraunces"'),
+              document.fonts.load('400 10pt "Inter"'),
+              document.fonts.load('600 10pt "Inter"'),
+              document.fonts.load('700 10pt "Inter"'),
+            ]);
+            await document.fonts.ready;
+          } catch (e) {}
+        }
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
         const canvas = await window.html2pdf()
           .from(clone)
           .set({ html2canvas: {
