@@ -2652,6 +2652,8 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
         return;
       }
       setPdfBusy(true);
+      const __scrollY = window.scrollY || window.pageYOffset || 0;
+      window.scrollTo(0, 0);   // azzera lo scroll: evita offset verticale nella cattura
       const clone = src.cloneNode(true);
       clone.querySelectorAll('.no-print').forEach((el) => el.remove());
       clone.style.boxShadow = 'none';
@@ -2664,7 +2666,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
       // html2canvas ottiene coordinate e larghezza corrette. A left:-99999px le
       // coordinate si rompevano e la colonna destra veniva tagliata.
       const holder = document.createElement('div');
-      holder.style.cssText = 'position:absolute;left:0;top:0;opacity:0;z-index:-1;pointer-events:none;background:#fff;width:794px';
+      holder.style.cssText = 'position:fixed;left:0;top:0;opacity:0;z-index:-1;pointer-events:none;background:#fff;width:794px';
       holder.appendChild(clone);
       document.body.appendChild(holder);
       // nome file: usa il cliente se presente
@@ -2696,6 +2698,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
           .from(clone)
           .set({ html2canvas: {
             scale: 3, useCORS: true, backgroundColor: '#ffffff',
+            scrollX: 0, scrollY: 0, windowWidth: 1280,
           } })
           .toCanvas().get('canvas');
         // Pagina a LARGHEZZA PIENA (210mm): i margini sono il padding interno
@@ -2712,6 +2715,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
         try { window.print(); } catch (e2) {}
       } finally {
         holder.remove();
+        window.scrollTo(0, __scrollY);   // ripristina la posizione di scroll
         setPdfBusy(false);
       }
     }, []);
