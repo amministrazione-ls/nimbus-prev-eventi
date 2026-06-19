@@ -27,7 +27,8 @@
 
 /* ---------- Page A4 ---------- */
 .lh-page {
-  width: 210mm;
+  box-sizing: border-box;   /* width = totale A4 (padding incluso) */
+  width: 210mm;             /* foglio = A4 esatto: niente overflow in stampa/PDF */
   min-height: 297mm;
   background: var(--lh-paper);
   color: var(--lh-ink);
@@ -827,17 +828,29 @@
 @page { size: A4; margin: 0; }
 
 @media print {
+  /* A4 esatto, margini gestiti dal padding interno del foglio (16mm) */
+  @page { size: A4 portrait; margin: 0; }
   html, body {
     background: #fff !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm !important;
+  }
+  /* Niente "tavolo" attorno al foglio in stampa */
+  .lh-stage {
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    background: #fff !important;
   }
   .lh-page {
     box-shadow: none !important;
     transform: none !important;
     margin: 0 !important;
+    width: 210mm !important;
+    min-height: auto !important;
     background-image: none !important;  /* no page-break gradient on print */
   }
   .no-print { display: none !important; }
@@ -1314,7 +1327,6 @@ html, body { margin: 0; padding: 0; background: #ECEAE4; min-height: 100vh; }
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
   import { getFirestore, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
@@ -2644,43 +2656,20 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
     // foglio, togliamo i controlli .no-print, e renderizziamo su A4.
     const [pdfBusy, setPdfBusy] = React.useState(false);
     const handlePrint = React.useCallback(async () => {
-      const src = document.querySelector('.lh-page');
-      if (!src) return;
-      if (!window.html2pdf) {
-        // Fallback: se la libreria non è caricata, usa la stampa di sistema
-        try { window.print(); } catch (e) {}
-        return;
-      }
+      // ── Stampa nativa del browser (deterministica, vettoriale) ──────────
+      // Niente html2canvas: aveva un bug con box-siz:border-box (rendeva il
+      // foglio a 242mm ignorando il border-box, tagliando la colonna destra in
+      // modo casuale a ogni click, soprattutto su mobile). La stampa nativa
+      // rispetta il box model, ha sempre i font caricati e impagina su A4
+      // (vedi @page nel CSS). L'utente sceglie "Salva come PDF" dal pannello.
       setPdfBusy(true);
-      const __scrollY = window.scrollY || window.pageYOffset || 0;
-      window.scrollTo(0, 0);   // azzera lo scroll: evita offset verticale nella cattura
-      const clone = src.cloneNode(true);
-      clone.querySelectorAll('.no-print').forEach((el) => el.remove());
-      clone.style.boxShadow = 'none';
-      clone.style.margin = '0';
-      clone.style.boxSizing = 'border-box';  /* larghezza totale = 794px (padding incluso) */
-      clone.style.width = '794px';      /* 210mm @96dpi */
-      clone.style.minHeight = '0';
-      clone.style.overflow = 'visible';
-      // Appendi il clone in pagina ma INVISIBILE (left:0, opacity:0, dietro tutto):
-      // html2canvas ottiene coordinate e larghezza corrette. A left:-99999px le
-      // coordinate si rompevano e la colonna destra veniva tagliata.
-      const holder = document.createElement('div');
-      holder.style.cssText = 'position:fixed;left:0;top:0;opacity:0;z-index:-1;pointer-events:none;background:#fff;width:794px';
-      holder.appendChild(clone);
-      document.body.appendChild(holder);
-      // nome file: usa il cliente se presente
-      let fname = 'Preventivo Nimbus';
+      // Imposta il titolo del documento → diventa il nome di default del PDF
+      const __title = document.title;
       try {
         const cli = (JSON.parse(localStorage.getItem('nimbus-preventivo-v2') || '{}').cliente || '').trim();
-        if (cli && !cli.startsWith('[')) fname = 'Preventivo - ' + cli;
-      } catch (e) {}
+        document.title = (cli && !cli.startsWith('[')) ? ('Preventivo - ' + cli) : 'Preventivo Nimbus';
+      } catch (e) { document.title = 'Preventivo Nimbus'; }
       try {
-        // ── Anti-race coi font ──────────────────────────────────────────
-        // Al primo click i font (Fraunces/Inter) potrebbero non essere ancora
-        // applicati nel clone offscreen → impaginazione sbagliata. Forziamo
-        // il caricamento esplicito delle famiglie usate, attendiamo fonts.ready
-        // e lasciamo passare due frame perché il layout si assesti.
         if (document.fonts) {
           try {
             await Promise.all([
@@ -2694,28 +2683,11 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
           } catch (e) {}
         }
         await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-        const canvas = await window.html2pdf()
-          .from(clone)
-          .set({ html2canvas: {
-            scale: 3, useCORS: true, backgroundColor: '#ffffff',
-            scrollX: 0, scrollY: 0, windowWidth: 1280,
-          } })
-          .toCanvas().get('canvas');
-        // Pagina a LARGHEZZA PIENA (210mm): i margini sono il padding interno
-        // del foglio, ben proporzionato. Altezza pagina = altezza esatta del
-        // contenuto, così niente spazi laterali e nessun rimpicciolimento.
-        const pageW = 210;
-        const pageH = canvas.height * pageW / canvas.width;
-        const pdf = await window.html2pdf()
-          .set({ jsPDF: { unit: 'mm', format: [pageW, pageH], orientation: 'portrait' } })
-          .from(document.createElement('div')).toPdf().get('pdf');
-        pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, pageW, pageH);
-        pdf.save(fname + '.pdf');
+        window.print();
       } catch (e) {
         try { window.print(); } catch (e2) {}
       } finally {
-        holder.remove();
-        window.scrollTo(0, __scrollY);   // ripristina la posizione di scroll
+        document.title = __title;   // ripristina il titolo
         setPdfBusy(false);
       }
     }, []);
@@ -2729,7 +2701,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
             ☰ Preset
           </button>
           <button className="primary" onClick={handlePrint} disabled={pdfBusy}>
-            <span style={{fontSize:14}}>↓</span> {pdfBusy ? "Genero PDF…" : "Scarica PDF"}
+            <span style={{fontSize:14}}>↓</span> {pdfBusy ? "Apro…" : "Scarica PDF"}
           </button>
           <button onClick={() => window.__nimbusReset && window.__nimbusReset()}>
             ↺ Ripristina
