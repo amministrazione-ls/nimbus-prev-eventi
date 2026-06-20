@@ -2683,6 +2683,25 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
           } catch (e) {}
         }
         await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        // ── Pagina UNICA, alta quanto il contenuto ──────────────────────
+        // La stampa nativa spezza su più A4 se il foglio è più alto di 297mm.
+        // Misuriamo l'altezza reale del foglio e impostiamo @page con quella
+        // dimensione esatta → esce sempre UNA sola pagina (vettoriale, nitida).
+        const page = document.querySelector('.lh-page');
+        let pageStyle = document.getElementById('__nimbus-page-size');
+        if (!pageStyle) {
+          pageStyle = document.createElement('style');
+          pageStyle.id = '__nimbus-page-size';
+          document.head.appendChild(pageStyle);
+        }
+        if (page) {
+          const hPx = Math.ceil(page.scrollHeight);
+          const hMm = Math.ceil(hPx * 25.4 / 96) + 1;   // px→mm, +1 di margine di sicurezza
+          pageStyle.textContent =
+            '@media print { @page { size: 210mm ' + hMm + 'mm; margin: 0; } ' +
+            '.lh-page { min-height: 0 !important; height: ' + hMm + 'mm !important; } }';
+        }
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
         window.print();
       } catch (e) {
         try { window.print(); } catch (e2) {}
